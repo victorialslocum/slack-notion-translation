@@ -7,5 +7,8 @@
     "scripts": {
         "start": "node main.js",
         "dev": "nodemon main.js"
+    },
+    "dependencies": {
+        "he": "^1.2.0"
     }
 }
