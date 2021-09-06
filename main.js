@@ -49,13 +49,14 @@ const replaceEmojis = (string) => {
         if (word.search(":" + key + ":") != -1) {
           var regexKey = new RegExp(key);
           string = string.replace(regexKey, he.decode(emojis[key]));
+
+          // replace all the ":" in the string and return
+          string = string.replace(/:/gi, "");
         }
       }
     }
   });
 
-  // replace all the ":" in the string and return
-  string = string.replace(/:/gi, "");
   return string;
 };
 
@@ -232,12 +233,12 @@ const newChild = (splitItem) => {
       notionItem.push(textItem);
     }
   });
-  console.log(notionItem)
+  console.log(notionItem);
   return notionItem;
 };
 
 // create a new Notion item
-const newNotionItem = (slackMessage, userId) => {
+const newNotionItem = (slackMessage) => {
   // empty block for spacing
   const emptyBlock = {
     object: "block",
@@ -255,29 +256,7 @@ const newNotionItem = (slackMessage, userId) => {
   };
 
   // notion Item for replies
-  const notionItem = [
-    {
-      object: "block",
-      type: "paragraph",
-      paragraph: {
-        text: [
-          {
-            type: "mention",
-            mention: {
-              type: "user",
-              user: { id: slackNotionId[userId] },
-            },
-          },
-          {
-            type: "text",
-            text: {
-              content: " says:",
-            },
-          },
-        ],
-      },
-    },
-  ];
+  const notionItem = [];
 
   // split message on line breaks and filter empty lines
   var newLineSplit = slackMessage.split("\n");
@@ -304,49 +283,8 @@ const newNotionItem = (slackMessage, userId) => {
 
   // add an empty block for spacing and return
   notionItem.push(emptyBlock);
-  console.log(notionItem)
+  console.log(notionItem);
   return notionItem;
 };
 
-// same thing as above except for inital messages not replies
-const initialNotionItem = (slackMessage, userId) => {
-  var newLineSplit = slackMessage.split("\n");
-  newLineSplit = newLineSplit.filter(Boolean);
-
-  const emptyBlock = {
-    object: "block",
-    type: "paragraph",
-    paragraph: {
-      text: [
-        {
-          type: "text",
-          text: {
-            content: "",
-          },
-        },
-      ],
-    },
-  };
-
-  // empty Notion Item instead of reply format
-  const notionItem = [];
-
-  newLineSplit.forEach((line) => {
-    var regex = new RegExp(/[\<\>]/);
-    var split = line.split(regex);
-    var item = newChild(split);
-
-    const childItem = {
-      object: "block",
-      type: "paragraph",
-      paragraph: { text: item },
-    };
-
-    notionItem.push(childItem);
-  });
-
-  notionItem.push(emptyBlock);
-  return notionItem;
-};
-
-newNotionItem(slackExample, "UT9G67J1Z");
+newNotionItem(slackExample);
