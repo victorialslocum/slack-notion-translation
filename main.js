@@ -26,7 +26,7 @@ const replaceEmojis = (string) => {
       }
     }
   });
-  string = string.replace(/:/gi, "")
+  string = string.replace(/:/gi, "");
   return string;
 };
 
@@ -78,36 +78,104 @@ const newCodeItem = (codeText) => {
   return array;
 };
 
+const newBoldItem = (codeText) => {
+  var array = {
+    type: "text",
+    text: {
+      content: codeText,
+    },
+    annotations: {
+      bold: true,
+    },
+  };
+  return array;
+};
+
+const newItalicItem = (codeText) => {
+  var array = {
+    type: "text",
+    text: {
+      content: codeText,
+    },
+    annotations: {
+      italic: true,
+    },
+  };
+  return array;
+};
+
+const newStrikeItem = (codeText) => {
+  var array = {
+    type: "text",
+    text: {
+      content: codeText,
+    },
+    annotations: {
+      strikethrough: true,
+    },
+  };
+  return array;
+};
+
 const newChild = (splitItem) => {
   var notionAppendItem = [];
 
   splitItem.forEach((item) => {
-    if (item.search("http") != -1) {
+    if ((item.search(/https?/) != -1) | (item.search(/mailto/) != -1)) {
       item = item.replace("\n", "");
       let linkSplit = item.split("|");
 
       const notionLinkItem = newLinkItem(linkSplit[1], linkSplit[0]);
       notionAppendItem.push(notionLinkItem);
-    } else if (item.search(":") != -1) {
-      item = item.replace("\n", "");
-      var string = replaceEmojis(item);
-      const textItem = newTextItem(string);
-      notionAppendItem.push(textItem);
     } else if (item.search("@") != -1) {
       item = item.replace("\n", "");
       var string = item.replace("@", "");
       const userItem = newUserItem(string, slackNotionId);
       notionAppendItem.push(userItem);
-    } else if (item.search("`") != -1) {
-      item = item.replace("\n", "");
-      var splitString = item.split("`");
-      const textItem = newTextItem(splitString[0]);
-      notionAppendItem.push(textItem);
-      const codeItem = newCodeItem(splitString[1]);
-      notionAppendItem.push(codeItem);
+    } else if (item.search(/[\`\_\*\~]/) != -1) {
+      item = replaceEmojis(item);
+      item = item.replace(/\n/gi, "");
+      item = item.replace(/[\*](?=[a-zA-Z0-9])/, "=*");
+      item = item.replace(/(?<=[a-zA-Z0-9,])[\*]/, "*=");
+      item = item.replace(/[\`](?=[a-zA-Z0-9])/, "=`");
+      item = item.replace(/(?<=[a-zA-Z0-9,])[\``]/, "`=");
+      item = item.replace(/[\_](?=[a-zA-Z0-9])/, "=_");
+      item = item.replace(/(?<=[a-zA-Z0-9,])[\_]/, "_=");
+      item = item.replace(/[\~](?=[a-zA-Z0-9])/, "=~");
+      item = item.replace(/(?<=[a-zA-Z0-9,])[\~]/, "~=");
+
+      console.log(item);
+      var split = item.split(/(\=)/gi);
+
+      split = split.filter(ah => ah.search("=") != 0);
+      console.log("split: ", split);
+      split.forEach((split) => {
+        if (split.search("`") != -1) {
+          split = split.replace(/\`/gi, "")
+          const item = newCodeItem(split);
+          notionAppendItem.push(item);
+        } else if (split.search("_") != -1) {
+          split = split.replace(/\_/gi, "")
+          const item = newItalicItem(split);
+          notionAppendItem.push(item);
+        } else if (split.search(/[\*]/) != -1) {
+          split = split.replace(/\*/gi, "")
+          const item = newBoldItem(split);
+          notionAppendItem.push(item);
+        } else if (split.search("~") != -1) {
+          split = split.replace(/\~/gi, "")
+          const item = newStrikeItem(split);
+          notionAppendItem.push(item);
+        } else {
+          split = split.replace(/=/gi, "");
+          const textItem = newTextItem(split);
+          notionAppendItem.push(textItem);
+        }
+      });
     } else {
       item = item.replace("\n", "");
-      const textItem = newTextItem(item);
+      var string = replaceEmojis(item);
+      const textItem = newTextItem(string);
       notionAppendItem.push(textItem);
     }
   });
@@ -115,16 +183,23 @@ const newChild = (splitItem) => {
 };
 
 const slackExample =
-  "Here is a message with <https://victoriaslocum.com|links> and\n" +
+  "made some major edits to our integration :tada:\n" +
+  "Tags: Team\n" +
   "\n" +
-  "line breaks :slightly_smiling_face: :potato: :shrimp:  emojis\n" +
+  "I worked on the standup integration a lot today and was able to get increased capability for `code`, emojis :wave: :potato: :shrimp: , and <http://endless.horse/|links>, along with adding features to the title such as more ways for cutting off, as well as links and emojis too.\n" +
   "\n" +
-  "tags like hey <@U0185FAF1T5> and even `code`";
+  "Things still to do are:\n" +
+  "• test if bullet points, *bold,* and _italic_ work or not\n" +
+  "• write blog posts\n" +
+  "• add file capabilities\n" +
+  "• add a profile pic for our app (any ideas?)\n" +
+  "• make sure everything works :grimacing:\n";
 
 const newNotionItem = (slackMessage, userId) => {
   var newLineSplit = slackMessage.split("\n");
   newLineSplit = newLineSplit.filter(Boolean);
 
+  console.log(newLineSplit);
   const emptyBlock = {
     object: "block",
     type: "paragraph",
@@ -138,7 +213,7 @@ const newNotionItem = (slackMessage, userId) => {
         },
       ],
     },
-  }
+  };
 
   const notionItem = [
     {
@@ -169,6 +244,7 @@ const newNotionItem = (slackMessage, userId) => {
 
     var split = line.split(regex);
 
+    console.log(split);
     var item = newChild(split);
 
     console.log(item);
