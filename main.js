@@ -13,17 +13,10 @@ const slackNotionId = {
 
 // example message from Slack
 const slackExample =
-  "made some major edits to our integration :tada:\n" +
-  "Tags: Team\n" +
+  "Hi this is a message with:\n" +
   "\n" +
-  "I worked on the standup integration a lot today and was able to get increased capability for `code`, emojis :wave: :potato: :shrimp: , and <http://endless.horse/|links>, along with adding features to the title such as more ways for cutting off, as well as links and emojis too.\n" +
-  "\n" +
-  "Things still to do are:\n" +
-  "• test if bullet points, *bold,* and _italic_ work or not\n" +
-  "• write blog posts\n" +
-  "• add file capabilities\n" +
-  "• add a profile pic for our app (any ideas?)\n" +
-  "• make sure everything works :grimacing:\n";
+  "• *bold*, _italic_, and `code` , along with <http://endless.horse/|links> and emojis :potato: :shrimp: :wave: \n" +
+  "• and tagged users like HEY <@U0185FAF1T5> ";
 
 // for emojis
 import he from "he";
@@ -47,8 +40,7 @@ const replaceEmojis = (string) => {
     if (word.search(":") != -1) {
       for (var key in emojis) {
         if (word.search(":" + key + ":") != -1) {
-          var regexKey = new RegExp(key);
-          string = string.replace(regexKey, he.decode(emojis[key]));
+          string = string.replace(key, he.decode(emojis[key]));
 
           // replace all the ":" in the string and return
           string = string.replace(/:/gi, "");
@@ -87,12 +79,13 @@ const newTextItem = (text) => {
 };
 
 // create a new Notion block item for users
-const newUserItem = (slackUserID, idDatabase) => {
+const newUserItem = (slackUserID) => {
   var array = {
     type: "mention",
     mention: {
+      // find the user's Notion ID from the Slack ID and the dictionary
       type: "user",
-      user: { id: idDatabase[slackUserID] },
+      user: { id: slackNotionId[slackUserID] },
     },
   };
   return array;
@@ -113,11 +106,11 @@ const newCodeItem = (codeText) => {
 };
 
 // create a new Notion block item for bold text
-const newBoldItem = (codeText) => {
+const newBoldItem = (boldText) => {
   var array = {
     type: "text",
     text: {
-      content: codeText,
+      content: boldText,
     },
     annotations: {
       bold: true,
@@ -127,11 +120,11 @@ const newBoldItem = (codeText) => {
 };
 
 // create a new Notion block item for code text
-const newItalicItem = (codeText) => {
+const newItalicItem = (italicText) => {
   var array = {
     type: "text",
     text: {
-      content: codeText,
+      content: italicText,
     },
     annotations: {
       italic: true,
@@ -141,11 +134,11 @@ const newItalicItem = (codeText) => {
 };
 
 // create a new Notion block item for strikethrough text
-const newStrikeItem = (codeText) => {
+const newStrikeItem = (strikeText) => {
   var array = {
     type: "text",
     text: {
-      content: codeText,
+      content: strikeText,
     },
     annotations: {
       strikethrough: true,
@@ -177,9 +170,15 @@ const newChild = (splitItem) => {
       // replace indicator symbol
       var string = item.replace("@", "");
 
-      // create a new user item and push to notionItem
-      const userItem = newUserItem(string, slackNotionId);
-      notionItem.push(userItem);
+      // check if the string is in the table, if not just push the string as a text item
+      if (string in slackNotionId) {
+        // create a new user item and push to notionItem
+        const userItem = newUserItem(string);
+        notionItem.push(userItem);
+      } else {
+        const textItem = newTextItem(item);
+        notionItem.push(textItem);
+      }
     } else if (item.search(/[\`\_\*\~]/) != -1) {
       // if a string contains any special annotations (bold, italic, code, strikethrough)
 
@@ -198,10 +197,7 @@ const newChild = (splitItem) => {
       item = item.replace(/(?<=[a-zA-Z0-9,])[\~]/, "~=");
 
       // split item based off of =
-      var split = item.split(/(\=)/gi);
-
-      // filter out any remaining "="
-      split = split.filter((test) => test.search("=") != 0);
+      var split = item.split(/\=/gi);
 
       // for each item, check to see what type it is, replace the indicator, and push to notionItem
       split.forEach((split) => {
@@ -255,7 +251,7 @@ const newNotionItem = (slackMessage) => {
     },
   };
 
-  // notion Item for replies
+  // notion Item
   const notionItem = [];
 
   // split message on line breaks and filter empty lines
